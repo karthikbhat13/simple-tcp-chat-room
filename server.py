@@ -1,72 +1,43 @@
-import select
 import socket
-import json
+import select
 
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+def server_program():
 
+    host = socket.gethostname()
+    port = 5000
 
-addr = '0.0.0.0'
-port = 7777
+    server_socket = socket.socket()
 
-recv_buf = 4096
+    server_socket.bind((host, port))
 
-
-def send_message(sock, message):
-    print("message rec : ", message)
-    m_dict = json.loads(message)
-    addr = m_dict["addr"]
-    mes = m_dict["text"]
-
-    print(addr, mes)
-    #
-    # print(con_list)
-    # recv_sock = con_list[addr]
-    # print(recv_sock)
-    # recv_sock.send(mes)
-
-    print(con_list)
-    for soc in con_list:
-        if soc != server_socket and soc != sock:
-            try:
-                print("trying to send ", mes)
-                print(soc)
-                soc.send(mes.encode())
-            except Exception as e:
-                print("Exception!", e)
-                soc.close()
-                con_list.remove(soc)
-
-
-if __name__ == "__main__":
-    server_socket.bind((addr, port))
-
-    server_socket.listen(10)
+    server_socket.listen(2)
 
     con_list = [server_socket]
 
-    users = []
-    print("Chat server started : " + str(server_socket))
+    while con_list:
+        read_sock, write_sock, err_sock = select.select(con_list, [], con_list)
 
-    while 1:
-        read_sockets, write_sockets, error_sockets = select.select(con_list, [], [])
+        for sock in read_sock:
 
-        for sock in read_sockets:
             if sock == server_socket:
-                new_socket, new_addr = server_socket.accept()
-                con_list.append(new_socket)
+                new_con, new_addr = server_socket.accept()
 
-                print("new client ", new_addr)
+                print("Connection from: ", str(new_addr))
+
+                con_list.append(new_con)
 
             else:
-                try:
-                    client_data = sock.recv(recv_buf)
+                data = sock.recv(1024).decode()
+                if not data:
+                    break
 
-                    if client_data:
-                        send_message(sock, client_data.decode("utf-8"))
-                except:
-                    sock.close()
-                    con_list.remove(sock)
+                print("from connected user: " + str(data))
+                for s in con_list:
+                    if s != server_socket and s != sock:
+                        print(s)
+                        s.send(data.encode())
 
-                    continue
-    server_socket.close()
+
+
+if __name__ == '__main__':
+    server_program()

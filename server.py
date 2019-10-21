@@ -10,7 +10,7 @@ def server_program():
 
     server_socket.bind((host, port))
 
-    server_socket.listen(2)
+    server_socket.listen(10)
 
     con_list = [server_socket]
 
